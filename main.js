@@ -1,4 +1,5 @@
 const { app, BrowserWindow, globalShortcut, screen, ipcMain, Tray, Menu, nativeImage } = require('electron');
+const { spawn } = require('node:child_process');
 
 let Store;
 let store;
@@ -370,6 +371,20 @@ function createSettingsWindow() {
   });
 }
 
+function forceRefocusPreviousWindowWindows() {
+  if (process.platform !== 'win32') return;
+
+  // Uses Alt+Esc to return focus to previously active window (typically the game).
+  // This is more reliable than PID-based focus in many game/anti-cheat setups.
+  const script = "$ws=New-Object -ComObject WScript.Shell; Start-Sleep -Milliseconds 30; $ws.SendKeys('%{ESC}')";
+  const encoded = Buffer.from(script, 'utf16le').toString('base64');
+  const ps = spawn('powershell', ['-NoProfile', '-EncodedCommand', encoded], {
+    windowsHide: true,
+    stdio: 'ignore'
+  });
+  ps.unref();
+}
+
 function showOverlay() {
   applyOverlayBounds();
   overlayWindow.setFocusable(true);
@@ -386,6 +401,7 @@ function hideOverlay() {
   backdropWindow.hide();
 
   setTimeout(() => {
+    forceRefocusPreviousWindowWindows();
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       overlayWindow.setFocusable(true);
     }
