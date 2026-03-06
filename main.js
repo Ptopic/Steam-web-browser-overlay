@@ -11,7 +11,7 @@ let isQuitting = false;
 const defaults = {
   defaultUrl: 'https://www.ign.com',
   lastUrl: '',
-  toggleShortcut: 'Control+Alt+G',
+  toggleShortcut: 'F9',
   widthRatio: 0.333
 };
 

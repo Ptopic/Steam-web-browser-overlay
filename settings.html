@@ -27,7 +27,7 @@
 
     <div class="row">
       <label for="toggleShortcut">Toggle shortcut</label>
-      <input id="toggleShortcut" placeholder="Control+Alt+G" />
+      <input id="toggleShortcut" placeholder="F9" />
       <div class="hint">Map your controller PS button to this shortcut (DS4Windows / Steam Input).</div>
     </div>
 
@@ -46,7 +46,7 @@
       async function load() {
         const s = await window.overlayAPI.getSettings();
         $('defaultUrl').value = s.defaultUrl || '';
-        $('toggleShortcut').value = s.toggleShortcut || 'Control+Alt+G';
+        $('toggleShortcut').value = s.toggleShortcut || 'F9';
         $('widthRatio').value = s.widthRatio || 0.333;
       }
 

@@ -4,7 +4,7 @@ Windows Electron app that opens a browser panel (default: right 1/3 of screen) w
 
 ## Features
 
-- Toggle overlay with shortcut (default: `Ctrl+Alt+G`)
+- Toggle overlay with shortcut (default: `F9`)
 - Fullscreen dark backdrop + browser panel on the right side
 - Remembers last visited URL
 - Configurable default URL (e.g. IGN game guide)
@@ -40,7 +40,7 @@ Options:
 - Steam Input chord mapping
 
 Example mapping:
-- PS button -> `Ctrl+Alt+G`
+- PS button -> `F9`
 
 Then pressing PS toggles this overlay.
 
