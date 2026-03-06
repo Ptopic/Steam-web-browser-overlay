@@ -68,6 +68,7 @@ function injectControllerBrowserControls() {
       let x = window.innerWidth / 2;
       let y = window.innerHeight / 2;
       let prevButtons = [];
+      let lockMode = false;
       const deadzone = 0.15;
 
       const cursor = document.createElement('div');
@@ -88,11 +89,63 @@ function injectControllerBrowserControls() {
       });
       document.documentElement.appendChild(cursor);
 
+      const crosshair = document.createElement('div');
+      crosshair.id = 'controller-overlay-crosshair';
+      Object.assign(crosshair.style, {
+        position: 'fixed',
+        left: '50%',
+        top: '50%',
+        width: '24px',
+        height: '24px',
+        marginLeft: '-12px',
+        marginTop: '-12px',
+        borderRadius: '50%',
+        border: '2px solid rgba(255,255,255,0.95)',
+        boxShadow: '0 0 8px rgba(0,0,0,0.8)',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+        display: 'none'
+      });
+      document.documentElement.appendChild(crosshair);
+
+      const lockBadge = document.createElement('div');
+      lockBadge.id = 'controller-overlay-lock-badge';
+      Object.assign(lockBadge.style, {
+        position: 'fixed',
+        left: '12px',
+        top: '12px',
+        padding: '6px 10px',
+        borderRadius: '8px',
+        background: 'rgba(0,0,0,0.7)',
+        color: '#fff',
+        fontSize: '12px',
+        fontFamily: 'Arial, sans-serif',
+        letterSpacing: '0.3px',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+        display: 'none'
+      });
+      lockBadge.textContent = 'MOUSE LOCK';
+      document.documentElement.appendChild(lockBadge);
+
       const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
       const focusedList = () => {
         return Array.from(document.querySelectorAll('a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])'))
           .filter(el => !el.disabled && el.offsetParent !== null);
       };
+
+      function setLockMode(on) {
+        lockMode = !!on;
+        document.documentElement.style.cursor = lockMode ? 'none' : '';
+        cursor.style.display = lockMode ? 'none' : 'block';
+        crosshair.style.display = lockMode ? 'block' : 'none';
+        lockBadge.style.display = lockMode ? 'block' : 'none';
+
+        if (lockMode) {
+          x = window.innerWidth / 2;
+          y = window.innerHeight / 2;
+        }
+      }
 
       function cycleFocus(reverse = false) {
         const list = focusedList();
@@ -111,14 +164,16 @@ function injectControllerBrowserControls() {
       }
 
       function pointerClick() {
-        const target = document.elementFromPoint(x, y);
+        const clickX = lockMode ? window.innerWidth / 2 : x;
+        const clickY = lockMode ? window.innerHeight / 2 : y;
+        const target = document.elementFromPoint(clickX, clickY);
         if (!target) return;
         for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
           target.dispatchEvent(new MouseEvent(type, {
             bubbles: true,
             cancelable: true,
-            clientX: x,
-            clientY: y,
+            clientX: clickX,
+            clientY: clickY,
             button: 0
           }));
         }
@@ -143,12 +198,20 @@ function injectControllerBrowserControls() {
           const moveY = gp.axes[1] || 0;
           const scrollY = gp.axes[3] || 0;
 
-          if (Math.abs(moveX) > deadzone) x += moveX * 18;
-          if (Math.abs(moveY) > deadzone) y += moveY * 18;
-          x = clamp(x, 0, window.innerWidth);
-          y = clamp(y, 0, window.innerHeight);
+          if (pressed(gp, 11)) setLockMode(!lockMode);         // R3 toggles mouse lock
 
-          if (Math.abs(scrollY) > deadzone) window.scrollBy(0, scrollY * 28);
+          if (lockMode) {
+            if (Math.abs(moveY) > deadzone) window.scrollBy(0, moveY * 28);
+            if (Math.abs(moveX) > deadzone) window.scrollBy(moveX * 28, 0);
+            x = window.innerWidth / 2;
+            y = window.innerHeight / 2;
+          } else {
+            if (Math.abs(moveX) > deadzone) x += moveX * 18;
+            if (Math.abs(moveY) > deadzone) y += moveY * 18;
+            x = clamp(x, 0, window.innerWidth);
+            y = clamp(y, 0, window.innerHeight);
+            if (Math.abs(scrollY) > deadzone) window.scrollBy(0, scrollY * 28);
+          }
 
           if (pressed(gp, 0)) pointerClick();                 // Cross / A
           if (pressed(gp, 1)) history.back();                 // Circle / B
@@ -169,6 +232,7 @@ function injectControllerBrowserControls() {
         y = clamp(y, 0, window.innerHeight);
       });
 
+      setLockMode(false);
       updateCursor();
       requestAnimationFrame(tick);
     })();
