@@ -49,16 +49,29 @@ function normalizeIgnToWalkthrough(url) {
   if (!value) return '';
 
   const lower = value.toLowerCase();
-  const isIgnHomeLike =
+  const plainIgn =
     lower === 'ign.com' ||
     lower === 'http://ign.com' ||
     lower === 'https://ign.com' ||
     lower === 'http://www.ign.com' ||
-    lower === 'https://www.ign.com' ||
-    lower === 'https://www.ign.com/' ||
-    lower === 'http://www.ign.com/';
+    lower === 'https://www.ign.com';
 
-  if (isIgnHomeLike) return defaults.defaultUrl;
+  if (plainIgn) return defaults.defaultUrl;
+
+  try {
+    const normalized = value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
+    const u = new URL(normalized);
+    const host = u.hostname.toLowerCase();
+    const isIgn = host === 'ign.com' || host === 'www.ign.com';
+    const isHomePath = !u.pathname || u.pathname === '/';
+
+    if (isIgn && isHomePath) {
+      return defaults.defaultUrl;
+    }
+  } catch {
+    // keep original when URL parsing fails
+  }
+
   return value;
 }
 
