@@ -58,7 +58,7 @@ Then pressing PS toggles this overlay.
 - L2: zoom out page
 - R2: zoom in page
 - R3 (right stick click): toggle true mouse lock mode (center crosshair)
-- Options/Start, PS/Home (when exposed), Touchpad press, or Share/Create: close/toggle overlay
+- Options/Start, Touchpad press, or Share/Create: close/toggle overlay
 - Emergency close combo: L3 + R3 together
 
 In mouse lock mode, cursor is hidden, crosshair stays centered, and sticks scroll the page while Cross/A clicks the centered element.

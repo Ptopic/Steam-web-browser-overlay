@@ -290,7 +290,6 @@ function injectControllerBrowserControls() {
           // Different drivers expose these buttons differently.
           const closePressed =
             pressed(gp, 9) ||   // Options/Start
-            pressed(gp, 16) ||  // PS/Home (some drivers)
             pressed(gp, 17) ||  // Touchpad press (some drivers)
             pressed(gp, 8);     // Share/Create fallback
 
