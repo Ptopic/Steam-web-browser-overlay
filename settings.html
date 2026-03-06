@@ -37,6 +37,14 @@
       <div class="hint">0.333 = one third of your screen.</div>
     </div>
 
+    <div class="row">
+      <label style="display:flex; align-items:center; gap:8px; font-weight:600;">
+        <input id="launchAtStartup" type="checkbox" style="width:auto;" checked />
+        Launch app at Windows startup
+      </label>
+      <div class="hint">Default is enabled.</div>
+    </div>
+
     <button class="primary" id="save">Save</button>
     <button class="secondary" id="openDefault">Open Default</button>
     <div id="status"></div>
@@ -48,13 +56,15 @@
         $('defaultUrl').value = s.defaultUrl || '';
         $('toggleShortcut').value = s.toggleShortcut || 'F9';
         $('widthRatio').value = s.widthRatio || 0.333;
+        $('launchAtStartup').checked = s.launchAtStartup !== false;
       }
 
       $('save').addEventListener('click', async () => {
         await window.overlayAPI.setSettings({
           defaultUrl: $('defaultUrl').value.trim(),
           toggleShortcut: $('toggleShortcut').value.trim(),
-          widthRatio: Number($('widthRatio').value)
+          widthRatio: Number($('widthRatio').value),
+          launchAtStartup: $('launchAtStartup').checked
         });
         $('status').textContent = 'Saved.';
         setTimeout(() => $('status').textContent = '', 1600);

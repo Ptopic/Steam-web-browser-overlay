@@ -12,7 +12,8 @@ const defaults = {
   defaultUrl: 'https://www.ign.com/wikis/clair-obscur-expedition-33/Flying_Waters_Walkthrough',
   lastUrl: '',
   toggleShortcut: 'F9',
-  widthRatio: 0.333
+  widthRatio: 0.333,
+  launchAtStartup: true
 };
 
 async function initStore() {
@@ -35,12 +36,27 @@ async function initStore() {
   if (currentLastUrl !== String(store.get('lastUrl') || '').trim()) {
     store.set('lastUrl', currentLastUrl);
   }
+
+  if (typeof store.get('launchAtStartup') !== 'boolean') {
+    store.set('launchAtStartup', true);
+  }
+
+  applyLaunchAtStartup(store.get('launchAtStartup'));
 }
 
 function clampRatio(ratio) {
   const n = Number(ratio);
   if (Number.isNaN(n)) return defaults.widthRatio;
   return Math.min(0.8, Math.max(0.2, n));
+}
+
+function applyLaunchAtStartup(enabled) {
+  const openAtLogin = !!enabled;
+  app.setLoginItemSettings({
+    openAtLogin,
+    path: process.execPath,
+    args: []
+  });
 }
 
 function normalizeIgnToWalkthrough(url) {
@@ -517,7 +533,8 @@ async function boot() {
     defaultUrl: normalizeIgnToWalkthrough(store.get('defaultUrl')) || defaults.defaultUrl,
     lastUrl: normalizeIgnToWalkthrough(store.get('lastUrl')),
     toggleShortcut: store.get('toggleShortcut'),
-    widthRatio: store.get('widthRatio')
+    widthRatio: store.get('widthRatio'),
+    launchAtStartup: !!store.get('launchAtStartup')
   }));
 
   ipcMain.handle('overlay:set-settings', async (_, next) => {
@@ -529,6 +546,10 @@ async function boot() {
     }
     if (next.toggleShortcut) store.set('toggleShortcut', String(next.toggleShortcut));
     if (next.widthRatio) store.set('widthRatio', clampRatio(next.widthRatio));
+    if (typeof next.launchAtStartup === 'boolean') {
+      store.set('launchAtStartup', !!next.launchAtStartup);
+      applyLaunchAtStartup(!!next.launchAtStartup);
+    }
 
     const updatedDefaultUrl = normalizeIgnToWalkthrough(store.get('defaultUrl')) || defaults.defaultUrl;
     const defaultChanged = prevDefaultUrl !== updatedDefaultUrl;

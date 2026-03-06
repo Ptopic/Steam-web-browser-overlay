@@ -31,6 +31,7 @@ In settings you can set:
 - Default URL
 - Toggle shortcut
 - Width ratio (0.333 = one third)
+- Launch at Windows startup (default: enabled)
 
 ## Controller mapping (PS button)
 
