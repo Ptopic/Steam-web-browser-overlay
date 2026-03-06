@@ -27,6 +27,12 @@ async function initStore() {
   if (!currentShortcut || currentShortcut === 'Control+Alt+G') {
     store.set('toggleShortcut', 'F9');
   }
+
+  // Migrate old default URL to walkthrough URL.
+  const currentDefaultUrl = String(store.get('defaultUrl') || '').trim();
+  if (!currentDefaultUrl || currentDefaultUrl === 'https://www.ign.com' || currentDefaultUrl === 'ign.com') {
+    store.set('defaultUrl', defaults.defaultUrl);
+  }
 }
 
 function clampRatio(ratio) {
