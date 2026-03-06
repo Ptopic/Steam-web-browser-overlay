@@ -1,0 +1,28 @@
+{
+  "name": "steam-web-browser-overlay",
+  "version": "1.0.0",
+  "description": "Controller-toggleable web overlay for Steam gaming sessions",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "settings": "electron . --settings",
+    "build": "electron-builder --win"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "build": {
+    "appId": "com.ptopic.steamweboverlay",
+    "productName": "Steam Web Overlay",
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "dependencies": {
+    "electron": "^40.8.0",
+    "electron-store": "^11.0.2"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.8.1"
+  }
+}

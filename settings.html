@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Steam Web Overlay Settings</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; background: #151515; color: #f3f3f3; }
+      h1 { font-size: 20px; margin: 0 0 16px 0; }
+      .row { margin-bottom: 14px; }
+      label { display: block; margin-bottom: 6px; font-weight: 600; }
+      input { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; }
+      button { padding: 8px 12px; border: none; border-radius: 6px; margin-right: 8px; cursor: pointer; }
+      .primary { background: #1a9fff; color: #fff; }
+      .secondary { background: #2d2d2d; color: #fff; }
+      .hint { color: #b9b9b9; font-size: 12px; }
+      #status { margin-top: 10px; color: #8fda8f; }
+    </style>
+  </head>
+  <body>
+    <h1>Overlay Settings</h1>
+
+    <div class="row">
+      <label for="defaultUrl">Default URL</label>
+      <input id="defaultUrl" placeholder="https://www.ign.com" />
+      <div class="hint">Used when no previous page is saved or when you press "Open Default".</div>
+    </div>
+
+    <div class="row">
+      <label for="toggleShortcut">Toggle shortcut</label>
+      <input id="toggleShortcut" placeholder="Control+Alt+G" />
+      <div class="hint">Map your controller PS button to this shortcut (DS4Windows / Steam Input).</div>
+    </div>
+
+    <div class="row">
+      <label for="widthRatio">Window width ratio (0.2 - 0.8)</label>
+      <input id="widthRatio" type="number" step="0.01" min="0.2" max="0.8" />
+      <div class="hint">0.333 = one third of your screen.</div>
+    </div>
+
+    <button class="primary" id="save">Save</button>
+    <button class="secondary" id="openDefault">Open Default</button>
+    <div id="status"></div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      async function load() {
+        const s = await window.overlayAPI.getSettings();
+        $('defaultUrl').value = s.defaultUrl || '';
+        $('toggleShortcut').value = s.toggleShortcut || 'Control+Alt+G';
+        $('widthRatio').value = s.widthRatio || 0.333;
+      }
+
+      $('save').addEventListener('click', async () => {
+        await window.overlayAPI.setSettings({
+          defaultUrl: $('defaultUrl').value.trim(),
+          toggleShortcut: $('toggleShortcut').value.trim(),
+          widthRatio: Number($('widthRatio').value)
+        });
+        $('status').textContent = 'Saved.';
+        setTimeout(() => $('status').textContent = '', 1600);
+      });
+
+      $('openDefault').addEventListener('click', async () => {
+        await window.overlayAPI.openDefault();
+      });
+
+      load();
+    </script>
+  </body>
+</html>
