@@ -301,7 +301,10 @@ function injectControllerBrowserControls() {
           const comboClosePressed = comboClose && !prevComboClose;
           prevComboClose = comboClose;
 
-          if (closePressed || comboClosePressed) {
+          const ignoreCloseUntil = Number(window.__overlayIgnoreCloseUntil || 0);
+          const canCloseNow = Date.now() >= ignoreCloseUntil;
+
+          if (canCloseNow && (closePressed || comboClosePressed)) {
             window.overlayAPI?.toggle?.();
           }
         }
@@ -454,6 +457,12 @@ function forceRefocusPreviousWindowWindows() {
 function showOverlay() {
   applyOverlayBounds();
   overlayWindow.setFocusable(true);
+
+  // Prevent immediate re-toggle when the same controller button is used to open the overlay.
+  overlayWindow.webContents.executeJavaScript(
+    'window.__overlayIgnoreCloseUntil = Date.now() + 900;'
+  ).catch(() => {});
+
   overlayWindow.show();
   overlayWindow.focus();
   injectControllerBrowserControls();
