@@ -29,9 +29,12 @@ async function initStore() {
   }
 
   // Migrate old default URL to walkthrough URL.
-  const currentDefaultUrl = String(store.get('defaultUrl') || '').trim();
-  if (!currentDefaultUrl || currentDefaultUrl === 'https://www.ign.com' || currentDefaultUrl === 'ign.com') {
-    store.set('defaultUrl', defaults.defaultUrl);
+  const currentDefaultUrl = normalizeIgnToWalkthrough(store.get('defaultUrl'));
+  store.set('defaultUrl', currentDefaultUrl || defaults.defaultUrl);
+
+  const currentLastUrl = normalizeIgnToWalkthrough(store.get('lastUrl'));
+  if (currentLastUrl !== String(store.get('lastUrl') || '').trim()) {
+    store.set('lastUrl', currentLastUrl);
   }
 }
 
@@ -41,8 +44,28 @@ function clampRatio(ratio) {
   return Math.min(0.8, Math.max(0.2, n));
 }
 
+function normalizeIgnToWalkthrough(url) {
+  const value = String(url || '').trim();
+  if (!value) return '';
+
+  const lower = value.toLowerCase();
+  const isIgnHomeLike =
+    lower === 'ign.com' ||
+    lower === 'http://ign.com' ||
+    lower === 'https://ign.com' ||
+    lower === 'http://www.ign.com' ||
+    lower === 'https://www.ign.com' ||
+    lower === 'https://www.ign.com/' ||
+    lower === 'http://www.ign.com/';
+
+  if (isIgnHomeLike) return defaults.defaultUrl;
+  return value;
+}
+
 function getStartUrl() {
-  return store.get('lastUrl') || store.get('defaultUrl') || defaults.defaultUrl;
+  const lastUrl = normalizeIgnToWalkthrough(store.get('lastUrl'));
+  const defaultUrl = normalizeIgnToWalkthrough(store.get('defaultUrl')) || defaults.defaultUrl;
+  return lastUrl || defaultUrl;
 }
 
 function getTargetDisplay() {
