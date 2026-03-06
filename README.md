@@ -55,6 +55,8 @@ Then pressing PS toggles this overlay.
 - Square / X: browser forward
 - Triangle / Y: fast scroll up
 - L1 / R1: previous/next focusable element
+- L2: zoom out page
+- R2: zoom in page
 - R3 (right stick click): toggle true mouse lock mode (center crosshair)
 - Options/Start, PS/Home (when exposed), Touchpad press, or Share/Create: close/toggle overlay
 - Emergency close combo: L3 + R3 together

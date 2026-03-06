@@ -120,7 +120,10 @@ function injectControllerBrowserControls() {
       let y = window.innerHeight / 2;
       let prevButtons = [];
       let prevComboClose = false;
+      let prevL2 = false;
+      let prevR2 = false;
       let lockMode = false;
+      let zoomLevel = 1;
       const deadzone = 0.15;
 
       const cursor = document.createElement('div');
@@ -238,6 +241,20 @@ function injectControllerBrowserControls() {
         return now && !before;
       }
 
+      function triggerPressed(gp, idx, prevStateName) {
+        const value = Number(gp.buttons[idx]?.value || 0);
+        const now = value > 0.65;
+        const was = prevStateName === 'l2' ? prevL2 : prevR2;
+        if (prevStateName === 'l2') prevL2 = now;
+        else prevR2 = now;
+        return now && !was;
+      }
+
+      function applyZoom(nextZoom) {
+        zoomLevel = clamp(nextZoom, 0.5, 2.0);
+        document.documentElement.style.zoom = String(zoomLevel);
+      }
+
       function updateCursor() {
         cursor.style.left = x + 'px';
         cursor.style.top = y + 'px';
@@ -273,6 +290,9 @@ function injectControllerBrowserControls() {
           if (pressed(gp, 13)) window.scrollBy(0, 180);       // D-pad Down
           if (pressed(gp, 4)) cycleFocus(true);               // L1
           if (pressed(gp, 5)) cycleFocus(false);              // R1
+
+          if (triggerPressed(gp, 6, 'l2')) applyZoom(zoomLevel - 0.1); // L2 zoom out
+          if (triggerPressed(gp, 7, 'r2')) applyZoom(zoomLevel + 0.1); // R2 zoom in
 
           // Fast close/toggle from controller while inside webview.
           // Different drivers expose these buttons differently.
