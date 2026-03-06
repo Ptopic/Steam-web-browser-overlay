@@ -76,6 +76,7 @@ function injectControllerBrowserControls() {
       let x = window.innerWidth / 2;
       let y = window.innerHeight / 2;
       let prevButtons = [];
+      let prevComboClose = false;
       let lockMode = false;
       const deadzone = 0.15;
 
@@ -231,7 +232,21 @@ function injectControllerBrowserControls() {
           if (pressed(gp, 5)) cycleFocus(false);              // R1
 
           // Fast close/toggle from controller while inside webview.
-          if (pressed(gp, 9) || pressed(gp, 16)) {            // Options/Start or PS/Home
+          // Different drivers expose these buttons differently.
+          const closePressed =
+            pressed(gp, 9) ||   // Options/Start
+            pressed(gp, 16) ||  // PS/Home (some drivers)
+            pressed(gp, 17) ||  // Touchpad press (some drivers)
+            pressed(gp, 8);     // Share/Create fallback
+
+          // Emergency combo fallback: L3 + R3 together.
+          const l3 = !!gp.buttons[10]?.pressed;
+          const r3 = !!gp.buttons[11]?.pressed;
+          const comboClose = l3 && r3;
+          const comboClosePressed = comboClose && !prevComboClose;
+          prevComboClose = comboClose;
+
+          if (closePressed || comboClosePressed) {
             window.overlayAPI?.toggle?.();
           }
         }

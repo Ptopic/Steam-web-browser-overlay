@@ -55,7 +55,8 @@ Then pressing PS toggles this overlay.
 - Triangle / Y: fast scroll up
 - L1 / R1: previous/next focusable element
 - R3 (right stick click): toggle true mouse lock mode (center crosshair)
-- Options/Start (and PS/Home on supported mappings): close/toggle overlay
+- Options/Start, PS/Home (when exposed), Touchpad press, or Share/Create: close/toggle overlay
+- Emergency close combo: L3 + R3 together
 
 In mouse lock mode, cursor is hidden, crosshair stays centered, and sticks scroll the page while Cross/A clicks the centered element.
 
