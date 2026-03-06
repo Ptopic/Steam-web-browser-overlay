@@ -1,10 +1,12 @@
-const { app, BrowserWindow, globalShortcut, screen, ipcMain } = require('electron');
+const { app, BrowserWindow, globalShortcut, screen, ipcMain, Tray, Menu, nativeImage } = require('electron');
 
 let Store;
 let store;
 let overlayWindow;
 let backdropWindow;
 let settingsWindow;
+let tray;
+let isQuitting = false;
 
 const defaults = {
   defaultUrl: 'https://www.ign.com',
@@ -286,8 +288,36 @@ function createOverlayWindow() {
   overlayWindow.webContents.on('did-finish-load', injectControllerBrowserControls);
 }
 
+function createTray() {
+  if (tray) return;
+
+  // Tiny white dot icon (works cross-platform without external asset files).
+  const iconDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAAX0lEQVR4AWP4//8/AyUYTFhY2P///xkYGFgYGBj+////n4GB4f///58YGBiY/v//P8P///8ZGBj+////PwMDA8N/0P8fGBiYwYGBgQxQ9v///z8DAwODQf8fA2QAAK+EE86Qv8xVAAAAAElFTkSuQmCC';
+  const trayIcon = nativeImage.createFromDataURL(iconDataUrl);
+
+  tray = new Tray(trayIcon);
+  tray.setToolTip('Steam Web Overlay');
+
+  const menu = Menu.buildFromTemplate([
+    { label: 'Open Settings', click: () => createSettingsWindow() },
+    { label: 'Toggle Overlay', click: () => toggleOverlay() },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+
+  tray.setContextMenu(menu);
+  tray.on('click', () => createSettingsWindow());
+}
+
 function createSettingsWindow() {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.show();
     settingsWindow.focus();
     return;
   }
@@ -306,6 +336,12 @@ function createSettingsWindow() {
   });
 
   settingsWindow.loadFile(`${__dirname}/settings.html`);
+
+  settingsWindow.on('close', (event) => {
+    if (isQuitting) return;
+    event.preventDefault();
+    settingsWindow.hide();
+  });
 }
 
 function showOverlay() {
@@ -337,6 +373,7 @@ async function boot() {
   await initStore();
   createBackdropWindow();
   createOverlayWindow();
+  createTray();
   registerToggleShortcut();
   applyOverlayBounds();
 

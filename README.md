@@ -9,6 +9,8 @@ Windows Electron app that opens a browser panel (default: right 1/3 of screen) w
 - Remembers last visited URL
 - Configurable default URL (e.g. IGN game guide)
 - Simple settings window
+- Minimize-to-tray behavior when settings window is closed
+- Tray click reopens settings; tray menu includes Toggle Overlay + Quit
 - Basic controller navigation inside web pages (virtual cursor + click + scroll)
 
 ## Setup
