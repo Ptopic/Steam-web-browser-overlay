@@ -20,6 +20,12 @@ async function initStore() {
     Store = (await import('electron-store')).default;
   }
   store = new Store({ defaults });
+
+  // Migrate old default shortcut to new default.
+  const currentShortcut = store.get('toggleShortcut');
+  if (!currentShortcut || currentShortcut === 'Control+Alt+G') {
+    store.set('toggleShortcut', 'F9');
+  }
 }
 
 function clampRatio(ratio) {
@@ -223,6 +229,11 @@ function injectControllerBrowserControls() {
           if (pressed(gp, 13)) window.scrollBy(0, 180);       // D-pad Down
           if (pressed(gp, 4)) cycleFocus(true);               // L1
           if (pressed(gp, 5)) cycleFocus(false);              // R1
+
+          // Fast close/toggle from controller while inside webview.
+          if (pressed(gp, 9) || pressed(gp, 16)) {            // Options/Start or PS/Home
+            window.overlayAPI?.toggle?.();
+          }
         }
 
         updateCursor();
