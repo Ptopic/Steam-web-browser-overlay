@@ -3,6 +3,7 @@ const { app, BrowserWindow, globalShortcut, screen, ipcMain } = require('electro
 let Store;
 let store;
 let overlayWindow;
+let backdropWindow;
 let settingsWindow;
 
 const defaults = {
@@ -29,18 +30,167 @@ function getStartUrl() {
   return store.get('lastUrl') || store.get('defaultUrl') || defaults.defaultUrl;
 }
 
+function getTargetDisplay() {
+  return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+}
+
 function applyOverlayBounds() {
-  if (!overlayWindow) return;
-  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-  const area = display.workArea;
+  if (!overlayWindow || !backdropWindow) return;
+
+  const display = getTargetDisplay();
+  const bounds = display.bounds;
   const ratio = clampRatio(store.get('widthRatio'));
-  const width = Math.floor(area.width * ratio);
-  overlayWindow.setBounds({
-    x: area.x + area.width - width,
-    y: area.y,
-    width,
-    height: area.height
+  const panelWidth = Math.floor(bounds.width * ratio);
+
+  backdropWindow.setBounds({
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height
   });
+
+  overlayWindow.setBounds({
+    x: bounds.x + bounds.width - panelWidth,
+    y: bounds.y,
+    width: panelWidth,
+    height: bounds.height
+  });
+}
+
+function injectControllerBrowserControls() {
+  if (!overlayWindow || overlayWindow.isDestroyed()) return;
+
+  overlayWindow.webContents.executeJavaScript(`
+    (() => {
+      if (window.__steamOverlayControllerInjected) return;
+      window.__steamOverlayControllerInjected = true;
+
+      let x = window.innerWidth / 2;
+      let y = window.innerHeight / 2;
+      let prevButtons = [];
+      const deadzone = 0.15;
+
+      const cursor = document.createElement('div');
+      cursor.id = 'controller-overlay-cursor';
+      Object.assign(cursor.style, {
+        position: 'fixed',
+        left: '0px',
+        top: '0px',
+        width: '18px',
+        height: '18px',
+        borderRadius: '50%',
+        border: '2px solid #ffffff',
+        background: 'rgba(0,0,0,0.5)',
+        boxShadow: '0 0 10px rgba(0,0,0,0.7)',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+        transform: 'translate(-50%, -50%)'
+      });
+      document.documentElement.appendChild(cursor);
+
+      const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+      const focusedList = () => {
+        return Array.from(document.querySelectorAll('a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])'))
+          .filter(el => !el.disabled && el.offsetParent !== null);
+      };
+
+      function cycleFocus(reverse = false) {
+        const list = focusedList();
+        if (!list.length) return;
+
+        const active = document.activeElement;
+        let idx = list.indexOf(active);
+        if (idx === -1) idx = reverse ? 0 : -1;
+
+        idx = reverse
+          ? (idx - 1 + list.length) % list.length
+          : (idx + 1) % list.length;
+
+        list[idx].focus({ preventScroll: false });
+        list[idx].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+
+      function pointerClick() {
+        const target = document.elementFromPoint(x, y);
+        if (!target) return;
+        for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+          target.dispatchEvent(new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: y,
+            button: 0
+          }));
+        }
+      }
+
+      function pressed(gp, idx) {
+        const now = !!gp.buttons[idx]?.pressed;
+        const before = !!prevButtons[idx];
+        prevButtons[idx] = now;
+        return now && !before;
+      }
+
+      function updateCursor() {
+        cursor.style.left = x + 'px';
+        cursor.style.top = y + 'px';
+      }
+
+      function tick() {
+        const gp = navigator.getGamepads?.()[0];
+        if (gp) {
+          const moveX = gp.axes[0] || 0;
+          const moveY = gp.axes[1] || 0;
+          const scrollY = gp.axes[3] || 0;
+
+          if (Math.abs(moveX) > deadzone) x += moveX * 18;
+          if (Math.abs(moveY) > deadzone) y += moveY * 18;
+          x = clamp(x, 0, window.innerWidth);
+          y = clamp(y, 0, window.innerHeight);
+
+          if (Math.abs(scrollY) > deadzone) window.scrollBy(0, scrollY * 28);
+
+          if (pressed(gp, 0)) pointerClick();                 // Cross / A
+          if (pressed(gp, 1)) history.back();                 // Circle / B
+          if (pressed(gp, 2)) history.forward();              // Square / X
+          if (pressed(gp, 3)) window.scrollBy(0, -400);       // Triangle / Y
+          if (pressed(gp, 12)) window.scrollBy(0, -180);      // D-pad Up
+          if (pressed(gp, 13)) window.scrollBy(0, 180);       // D-pad Down
+          if (pressed(gp, 4)) cycleFocus(true);               // L1
+          if (pressed(gp, 5)) cycleFocus(false);              // R1
+        }
+
+        updateCursor();
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener('resize', () => {
+        x = clamp(x, 0, window.innerWidth);
+        y = clamp(y, 0, window.innerHeight);
+      });
+
+      updateCursor();
+      requestAnimationFrame(tick);
+    })();
+  `).catch(() => {});
+}
+
+function createBackdropWindow() {
+  backdropWindow = new BrowserWindow({
+    show: false,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000088',
+    movable: false,
+    resizable: false,
+    focusable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    hasShadow: false
+  });
+
+  backdropWindow.setAlwaysOnTop(true, 'screen-saver', 1);
 }
 
 function createOverlayWindow() {
@@ -58,7 +208,7 @@ function createOverlayWindow() {
     }
   });
 
-  applyOverlayBounds();
+  overlayWindow.setAlwaysOnTop(true, 'screen-saver', 2);
   overlayWindow.loadURL(getStartUrl());
 
   const saveUrl = (url) => {
@@ -69,12 +219,7 @@ function createOverlayWindow() {
 
   overlayWindow.webContents.on('did-navigate', (_, url) => saveUrl(url));
   overlayWindow.webContents.on('did-navigate-in-page', (_, url) => saveUrl(url));
-
-  overlayWindow.on('blur', () => {
-    if (!overlayWindow.webContents.isDevToolsOpened()) {
-      overlayWindow.hide();
-    }
-  });
+  overlayWindow.webContents.on('did-finish-load', injectControllerBrowserControls);
 }
 
 function createSettingsWindow() {
@@ -99,15 +244,23 @@ function createSettingsWindow() {
   settingsWindow.loadFile(`${__dirname}/settings.html`);
 }
 
+function showOverlay() {
+  applyOverlayBounds();
+  backdropWindow.showInactive();
+  overlayWindow.show();
+  overlayWindow.focus();
+  injectControllerBrowserControls();
+}
+
+function hideOverlay() {
+  overlayWindow.hide();
+  backdropWindow.hide();
+}
+
 function toggleOverlay() {
-  if (!overlayWindow) return;
-  if (overlayWindow.isVisible()) {
-    overlayWindow.hide();
-  } else {
-    applyOverlayBounds();
-    overlayWindow.show();
-    overlayWindow.focus();
-  }
+  if (!overlayWindow || !backdropWindow) return;
+  if (overlayWindow.isVisible()) hideOverlay();
+  else showOverlay();
 }
 
 function registerToggleShortcut() {
@@ -118,8 +271,10 @@ function registerToggleShortcut() {
 
 async function boot() {
   await initStore();
+  createBackdropWindow();
   createOverlayWindow();
   registerToggleShortcut();
+  applyOverlayBounds();
 
   if (process.argv.includes('--settings')) {
     createSettingsWindow();
@@ -146,16 +301,14 @@ async function boot() {
   ipcMain.handle('overlay:open-default', () => {
     const url = store.get('defaultUrl') || defaults.defaultUrl;
     overlayWindow.loadURL(url);
-    overlayWindow.show();
-    overlayWindow.focus();
+    showOverlay();
     return true;
   });
 
   ipcMain.handle('overlay:navigate', (_, url) => {
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
       overlayWindow.loadURL(url);
-      overlayWindow.show();
-      overlayWindow.focus();
+      showOverlay();
       return true;
     }
     return false;
@@ -190,12 +343,14 @@ async function boot() {
 app.whenReady().then(boot);
 
 app.on('window-all-closed', () => {
-  // Keep running in tray-like mode for quick toggle.
+  // Keep app running for quick overlay toggle.
 });
 
 app.on('activate', () => {
-  if (!overlayWindow || overlayWindow.isDestroyed()) {
+  if (!overlayWindow || overlayWindow.isDestroyed() || !backdropWindow || backdropWindow.isDestroyed()) {
+    createBackdropWindow();
     createOverlayWindow();
+    applyOverlayBounds();
   }
 });
 

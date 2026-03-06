@@ -5,10 +5,11 @@ Windows Electron app that opens a browser panel (default: right 1/3 of screen) w
 ## Features
 
 - Toggle overlay with shortcut (default: `Ctrl+Alt+G`)
-- Browser window pinned to right side of screen
+- Fullscreen dark backdrop + browser panel on the right side
 - Remembers last visited URL
 - Configurable default URL (e.g. IGN game guide)
 - Simple settings window
+- Basic controller navigation inside web pages (virtual cursor + click + scroll)
 
 ## Setup
 
@@ -40,6 +41,17 @@ Example mapping:
 - PS button -> `Ctrl+Alt+G`
 
 Then pressing PS toggles this overlay.
+
+## Controller controls in overlay
+
+- Left stick: move virtual cursor
+- Cross / A: click
+- Right stick (vertical): smooth scroll
+- D-pad up/down: step scroll
+- Circle / B: browser back
+- Square / X: browser forward
+- Triangle / Y: fast scroll up
+- L1 / R1: previous/next focusable element
 
 ## Build Windows installer
 
