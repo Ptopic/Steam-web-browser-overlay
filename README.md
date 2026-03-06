@@ -5,7 +5,7 @@ Windows Electron app that opens a browser panel (default: right 1/3 of screen) w
 ## Features
 
 - Toggle overlay with shortcut (default: `F9`)
-- Fullscreen dark backdrop + browser panel on the right side
+- Browser panel on the right side (no dim backdrop)
 - Best-effort focus return to game when overlay closes (Windows Alt+Esc fallback)
 - Remembers last visited URL
 - Configurable default URL (e.g. IGN game guide)

@@ -4,7 +4,6 @@ const { spawn } = require('node:child_process');
 let Store;
 let store;
 let overlayWindow;
-let backdropWindow;
 let settingsWindow;
 let tray;
 let isQuitting = false;
@@ -86,19 +85,12 @@ function getTargetDisplay() {
 }
 
 function applyOverlayBounds() {
-  if (!overlayWindow || !backdropWindow) return;
+  if (!overlayWindow) return;
 
   const display = getTargetDisplay();
   const bounds = display.bounds;
   const ratio = clampRatio(store.get('widthRatio'));
   const panelWidth = Math.floor(bounds.width * ratio);
-
-  backdropWindow.setBounds({
-    x: bounds.x,
-    y: bounds.y,
-    width: bounds.width,
-    height: bounds.height
-  });
 
   overlayWindow.setBounds({
     x: bounds.x + bounds.width - panelWidth,
@@ -330,24 +322,6 @@ function injectControllerBrowserControls() {
   `).catch(() => {});
 }
 
-function createBackdropWindow() {
-  backdropWindow = new BrowserWindow({
-    show: false,
-    frame: false,
-    transparent: true,
-    backgroundColor: '#00000088',
-    movable: false,
-    resizable: false,
-    focusable: false,
-    fullscreenable: false,
-    skipTaskbar: true,
-    alwaysOnTop: true,
-    hasShadow: false
-  });
-
-  backdropWindow.setAlwaysOnTop(true, 'screen-saver', 1);
-}
-
 function createOverlayWindow() {
   overlayWindow = new BrowserWindow({
     show: false,
@@ -480,7 +454,6 @@ function forceRefocusPreviousWindowWindows() {
 function showOverlay() {
   applyOverlayBounds();
   overlayWindow.setFocusable(true);
-  backdropWindow.showInactive();
   overlayWindow.show();
   overlayWindow.focus();
   injectControllerBrowserControls();
@@ -490,7 +463,6 @@ function hideOverlay() {
   overlayWindow.blur();
   overlayWindow.setFocusable(false);
   overlayWindow.hide();
-  backdropWindow.hide();
 
   setTimeout(() => {
     forceRefocusPreviousWindowWindows();
@@ -501,7 +473,7 @@ function hideOverlay() {
 }
 
 function toggleOverlay() {
-  if (!overlayWindow || !backdropWindow) return;
+  if (!overlayWindow) return;
   if (overlayWindow.isVisible()) hideOverlay();
   else showOverlay();
 }
@@ -514,7 +486,6 @@ function registerToggleShortcut() {
 
 async function boot() {
   await initStore();
-  createBackdropWindow();
   createOverlayWindow();
   createTray();
   registerToggleShortcut();
@@ -603,8 +574,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (!overlayWindow || overlayWindow.isDestroyed() || !backdropWindow || backdropWindow.isDestroyed()) {
-    createBackdropWindow();
+  if (!overlayWindow || overlayWindow.isDestroyed()) {
     createOverlayWindow();
     applyOverlayBounds();
   }
