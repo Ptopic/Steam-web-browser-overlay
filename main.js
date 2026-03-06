@@ -1,4 +1,5 @@
 const { app, BrowserWindow, globalShortcut, screen, ipcMain, Tray, Menu, nativeImage } = require('electron');
+const { execSync } = require('node:child_process');
 
 let Store;
 let store;
@@ -7,6 +8,7 @@ let backdropWindow;
 let settingsWindow;
 let tray;
 let isQuitting = false;
+let lastForegroundPid = null;
 
 const defaults = {
   defaultUrl: 'https://www.ign.com/wikis/clair-obscur-expedition-33/Flying_Waters_Walkthrough',
@@ -370,7 +372,45 @@ function createSettingsWindow() {
   });
 }
 
+function runPowerShell(script, captureOutput = false) {
+  const encoded = Buffer.from(script, 'utf16le').toString('base64');
+  return execSync(`powershell -NoProfile -EncodedCommand ${encoded}`, {
+    stdio: captureOutput ? ['ignore', 'pipe', 'ignore'] : 'ignore'
+  });
+}
+
+function captureForegroundPid() {
+  if (process.platform !== 'win32') return null;
+  try {
+    const script = [
+      `$sig='[DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr hWnd, out uint lpdwProcessId);'`,
+      `Add-Type -Name W -Namespace U -MemberDefinition $sig`,
+      `$h=[U.W]::GetForegroundWindow()`,
+      `[uint32]$p=0`,
+      `[U.W]::GetWindowThreadProcessId($h,[ref]$p) | Out-Null`,
+      `Write-Output $p`
+    ].join('; ');
+
+    const out = runPowerShell(script, true).toString().trim();
+    const pid = Number(out);
+    if (Number.isFinite(pid) && pid > 0) return pid;
+  } catch {
+    // noop
+  }
+  return null;
+}
+
+function focusPid(pid) {
+  if (process.platform !== 'win32' || !pid) return;
+  try {
+    runPowerShell(`$ws=New-Object -ComObject WScript.Shell; $ws.AppActivate(${pid}) | Out-Null`);
+  } catch {
+    // noop
+  }
+}
+
 function showOverlay() {
+  lastForegroundPid = captureForegroundPid();
   applyOverlayBounds();
   overlayWindow.setFocusable(true);
   backdropWindow.showInactive();
@@ -380,13 +420,13 @@ function showOverlay() {
 }
 
 function hideOverlay() {
-  // Best-effort focus return to the previously active app/game on Windows.
   overlayWindow.blur();
   overlayWindow.setFocusable(false);
   overlayWindow.hide();
   backdropWindow.hide();
 
   setTimeout(() => {
+    focusPid(lastForegroundPid);
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       overlayWindow.setFocusable(true);
     }
