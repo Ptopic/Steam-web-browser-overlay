@@ -9,7 +9,7 @@ let tray;
 let isQuitting = false;
 
 const defaults = {
-  defaultUrl: 'https://www.ign.com',
+  defaultUrl: 'https://www.ign.com/wikis/clair-obscur-expedition-33/Flying_Waters_Walkthrough',
   lastUrl: '',
   toggleShortcut: 'F9',
   widthRatio: 0.333
