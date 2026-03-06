@@ -289,9 +289,9 @@ function injectControllerBrowserControls() {
           // Fast close/toggle from controller while inside webview.
           // Different drivers expose these buttons differently.
           const closePressed =
-            pressed(gp, 9) ||   // Options/Start
-            pressed(gp, 17) ||  // Touchpad press (some drivers)
-            pressed(gp, 8);     // Share/Create fallback
+            pressed(gp, 9) ||    // Options/Start
+            pressed(gp, 17) ||   // Touchpad press (standard mapping)
+            pressed(gp, 8);      // Share/Create fallback
 
           // Emergency combo fallback: L3 + R3 together.
           const l3 = !!gp.buttons[10]?.pressed;
@@ -315,6 +315,16 @@ function injectControllerBrowserControls() {
       window.addEventListener('resize', () => {
         x = clamp(x, 0, window.innerWidth);
         y = clamp(y, 0, window.innerHeight);
+      });
+
+      // Keyboard fallback: lets DS4Windows keybinds close reliably while focused.
+      window.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        const k = String(e.key || '').toLowerCase();
+        if (k === 'f9' || k === 'escape') {
+          e.preventDefault();
+          window.overlayAPI?.toggle?.();
+        }
       });
 
       setLockMode(false);
