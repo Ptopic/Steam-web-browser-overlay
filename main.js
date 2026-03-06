@@ -372,6 +372,7 @@ function createSettingsWindow() {
 
 function showOverlay() {
   applyOverlayBounds();
+  overlayWindow.setFocusable(true);
   backdropWindow.showInactive();
   overlayWindow.show();
   overlayWindow.focus();
@@ -379,8 +380,17 @@ function showOverlay() {
 }
 
 function hideOverlay() {
+  // Best-effort focus return to the previously active app/game on Windows.
+  overlayWindow.blur();
+  overlayWindow.setFocusable(false);
   overlayWindow.hide();
   backdropWindow.hide();
+
+  setTimeout(() => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.setFocusable(true);
+    }
+  }, 120);
 }
 
 function toggleOverlay() {
