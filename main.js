@@ -340,9 +340,7 @@ async function boot() {
   registerToggleShortcut();
   applyOverlayBounds();
 
-  if (process.argv.includes('--settings')) {
-    createSettingsWindow();
-  }
+  createSettingsWindow();
 
   screen.on('display-metrics-changed', applyOverlayBounds);
 
