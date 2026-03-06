@@ -357,6 +357,26 @@ function createOverlayWindow() {
   overlayWindow.webContents.on('did-finish-load', injectControllerBrowserControls);
 }
 
+async function clearBrowserCache({ resetLastUrl = false } = {}) {
+  if (!overlayWindow || overlayWindow.isDestroyed()) return false;
+
+  try {
+    const ses = overlayWindow.webContents.session;
+    await ses.clearCache();
+    await ses.clearStorageData({
+      storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'serviceworkers', 'websql']
+    });
+
+    if (resetLastUrl) {
+      store.set('lastUrl', '');
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function createTray() {
   if (tray) return;
 
@@ -370,6 +390,16 @@ function createTray() {
   const menu = Menu.buildFromTemplate([
     { label: 'Open Settings', click: () => createSettingsWindow() },
     { label: 'Toggle Overlay', click: () => toggleOverlay() },
+    {
+      label: 'Clear Browser Cache',
+      click: async () => {
+        const ok = await clearBrowserCache({ resetLastUrl: true });
+        if (ok) {
+          const defaultUrl = normalizeIgnToWalkthrough(store.get('defaultUrl')) || defaults.defaultUrl;
+          overlayWindow.loadURL(defaultUrl);
+        }
+      }
+    },
     { type: 'separator' },
     {
       label: 'Quit',
@@ -475,23 +505,37 @@ async function boot() {
   screen.on('display-metrics-changed', applyOverlayBounds);
 
   ipcMain.handle('overlay:get-settings', () => ({
-    defaultUrl: store.get('defaultUrl'),
-    lastUrl: store.get('lastUrl'),
+    defaultUrl: normalizeIgnToWalkthrough(store.get('defaultUrl')) || defaults.defaultUrl,
+    lastUrl: normalizeIgnToWalkthrough(store.get('lastUrl')),
     toggleShortcut: store.get('toggleShortcut'),
     widthRatio: store.get('widthRatio')
   }));
 
-  ipcMain.handle('overlay:set-settings', (_, next) => {
-    if (next.defaultUrl) store.set('defaultUrl', String(next.defaultUrl));
+  ipcMain.handle('overlay:set-settings', async (_, next) => {
+    const prevDefaultUrl = normalizeIgnToWalkthrough(store.get('defaultUrl')) || defaults.defaultUrl;
+
+    if (next.defaultUrl) {
+      const normalizedNewDefault = normalizeIgnToWalkthrough(String(next.defaultUrl));
+      store.set('defaultUrl', normalizedNewDefault || defaults.defaultUrl);
+    }
     if (next.toggleShortcut) store.set('toggleShortcut', String(next.toggleShortcut));
     if (next.widthRatio) store.set('widthRatio', clampRatio(next.widthRatio));
+
+    const updatedDefaultUrl = normalizeIgnToWalkthrough(store.get('defaultUrl')) || defaults.defaultUrl;
+    const defaultChanged = prevDefaultUrl !== updatedDefaultUrl;
+
+    if (defaultChanged) {
+      await clearBrowserCache({ resetLastUrl: true });
+      overlayWindow.loadURL(updatedDefaultUrl);
+    }
+
     registerToggleShortcut();
     applyOverlayBounds();
     return true;
   });
 
   ipcMain.handle('overlay:open-default', () => {
-    const url = store.get('defaultUrl') || defaults.defaultUrl;
+    const url = normalizeIgnToWalkthrough(store.get('defaultUrl')) || defaults.defaultUrl;
     overlayWindow.loadURL(url);
     showOverlay();
     return true;
