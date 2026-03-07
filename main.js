@@ -335,10 +335,22 @@ function injectControllerBrowserControls() {
       });
 
       // Keyboard fallback: lets DS4Windows keybinds close reliably while focused.
+      // Ignore early key events right after opening to prevent open->instant-close on F9.
       window.addEventListener('keydown', (e) => {
         if (e.repeat) return;
         const k = String(e.key || '').toLowerCase();
-        if (k === 'f9' || k === 'escape') {
+
+        const ignoreCloseUntil = Number(window.__overlayIgnoreCloseUntil || 0);
+        const canCloseNow = Date.now() >= ignoreCloseUntil;
+
+        if (k === 'f9') {
+          if (!canCloseNow) return;
+          e.preventDefault();
+          window.overlayAPI?.toggle?.();
+          return;
+        }
+
+        if (k === 'escape') {
           e.preventDefault();
           window.overlayAPI?.toggle?.();
         }
