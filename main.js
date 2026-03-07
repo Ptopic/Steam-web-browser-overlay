@@ -7,7 +7,6 @@ let overlayWindow;
 let settingsWindow;
 let tray;
 let isQuitting = false;
-let hideRefocusTimer = null;
 
 const defaults = {
   defaultUrl: 'https://www.ign.com/wikis/clair-obscur-expedition-33/Flying_Waters_Walkthrough',
@@ -317,10 +316,7 @@ function injectControllerBrowserControls() {
           const comboClosePressed = comboClose && !prevComboClose;
           prevComboClose = comboClose;
 
-          const ignoreCloseUntil = Number(window.__overlayIgnoreCloseUntil || 0);
-          const canCloseNow = Date.now() >= ignoreCloseUntil;
-
-          if (canCloseNow && (closePressed || comboClosePressed)) {
+          if (closePressed || comboClosePressed) {
             window.overlayAPI?.toggle?.();
           }
         }
@@ -334,22 +330,12 @@ function injectControllerBrowserControls() {
         y = clamp(y, 0, window.innerHeight);
       });
 
-      // Keyboard fallback: lets DS4Windows keybinds close reliably while focused.
-      // Ignore early key events right after opening to prevent open->instant-close on F9.
+      // Keyboard fallback while webview is focused.
       window.addEventListener('keydown', (e) => {
         if (e.repeat) return;
         const k = String(e.key || '').toLowerCase();
 
-        const ignoreCloseUntil = Number(window.__overlayIgnoreCloseUntil || 0);
-        const canCloseNow = Date.now() >= ignoreCloseUntil;
-
-        if (k === 'f9') {
-          if (!canCloseNow) return;
-          e.preventDefault();
-          window.overlayAPI?.toggle?.();
-          return;
-        }
-
+        // Keep only Esc in-page; global shortcut handles primary toggle.
         if (k === 'escape') {
           e.preventDefault();
           window.overlayAPI?.toggle?.();
@@ -494,19 +480,8 @@ function forceRefocusPreviousWindowWindows() {
 }
 
 function showOverlay() {
-  if (hideRefocusTimer) {
-    clearTimeout(hideRefocusTimer);
-    hideRefocusTimer = null;
-  }
-
   applyOverlayBounds();
   overlayWindow.setFocusable(true);
-
-  // Prevent immediate re-toggle when the same controller button is used to open the overlay.
-  overlayWindow.webContents.executeJavaScript(
-    'window.__overlayIgnoreCloseUntil = Date.now() + 900;'
-  ).catch(() => {});
-
   overlayWindow.show();
   overlayWindow.focus();
   overlayWindow.webContents.focus();
@@ -518,17 +493,11 @@ function hideOverlay() {
   overlayWindow.setFocusable(false);
   overlayWindow.hide();
 
-  if (hideRefocusTimer) {
-    clearTimeout(hideRefocusTimer);
-  }
+  forceRefocusPreviousWindowWindows();
 
-  hideRefocusTimer = setTimeout(() => {
-    forceRefocusPreviousWindowWindows();
-    if (overlayWindow && !overlayWindow.isDestroyed()) {
-      overlayWindow.setFocusable(true);
-    }
-    hideRefocusTimer = null;
-  }, 120);
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.setFocusable(true);
+  }
 }
 
 function toggleOverlay() {
