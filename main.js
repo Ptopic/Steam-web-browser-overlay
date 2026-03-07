@@ -361,7 +361,8 @@ function createOverlayWindow() {
     webPreferences: {
       preload: `${__dirname}/preload.js`,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      partition: 'persist:overlay'
     }
   });
 
