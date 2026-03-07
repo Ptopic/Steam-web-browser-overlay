@@ -493,11 +493,15 @@ function hideOverlay() {
   overlayWindow.setFocusable(false);
   overlayWindow.hide();
 
+  // Focus handoff can race on Windows. Retry once after a short delay.
   forceRefocusPreviousWindowWindows();
+  setTimeout(() => {
+    forceRefocusPreviousWindowWindows();
 
-  if (overlayWindow && !overlayWindow.isDestroyed()) {
-    overlayWindow.setFocusable(true);
-  }
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.setFocusable(true);
+    }
+  }, 140);
 }
 
 function toggleOverlay() {
