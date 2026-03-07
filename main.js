@@ -7,6 +7,7 @@ let overlayWindow;
 let settingsWindow;
 let tray;
 let isQuitting = false;
+let hideRefocusTimer = null;
 
 const defaults = {
   defaultUrl: 'https://www.ign.com/wikis/clair-obscur-expedition-33/Flying_Waters_Walkthrough',
@@ -481,6 +482,11 @@ function forceRefocusPreviousWindowWindows() {
 }
 
 function showOverlay() {
+  if (hideRefocusTimer) {
+    clearTimeout(hideRefocusTimer);
+    hideRefocusTimer = null;
+  }
+
   applyOverlayBounds();
   overlayWindow.setFocusable(true);
 
@@ -491,6 +497,7 @@ function showOverlay() {
 
   overlayWindow.show();
   overlayWindow.focus();
+  overlayWindow.webContents.focus();
   injectControllerBrowserControls();
 }
 
@@ -499,11 +506,16 @@ function hideOverlay() {
   overlayWindow.setFocusable(false);
   overlayWindow.hide();
 
-  setTimeout(() => {
+  if (hideRefocusTimer) {
+    clearTimeout(hideRefocusTimer);
+  }
+
+  hideRefocusTimer = setTimeout(() => {
     forceRefocusPreviousWindowWindows();
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       overlayWindow.setFocusable(true);
     }
+    hideRefocusTimer = null;
   }, 120);
 }
 
